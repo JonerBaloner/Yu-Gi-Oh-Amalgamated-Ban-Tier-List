@@ -889,15 +889,18 @@ const tb=document.getElementById('tagbtn');if(tb)tb.addEventListener('click',()=
 <style id="mobile-menu">
 .mtoggle{display:none}
 @media(max-width:700px){
-.bar.m-armed .mtoggle{display:flex}
+.bar.m-fixed{position:fixed;top:0;left:0;right:0;margin:0!important;z-index:30;box-sizing:border-box}
+.bar.m-fixed .mtoggle{display:flex}
 .mtoggle{align-items:center;gap:10px;width:100%;box-sizing:border-box;background:#1c2230;color:#fff;border:1.5px solid #ffb300;border-radius:10px;padding:10px 12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;text-align:left}
 .mtoggle .mt-ic{font-size:17px;color:#ffb300;line-height:1}
-.mtoggle .mt-ct{margin-left:auto;color:var(--mut);font-weight:500;font-size:12px;white-space:nowrap}
-.mtoggle .mt-ch{font-size:16px;color:#ffb300;line-height:1}
+.mtoggle .mt-ch{margin-left:auto;font-size:16px;color:#ffb300;line-height:1}
 .mtoggle.pulse{animation:mtp 1.2s ease-in-out 3}
 @keyframes mtp{0%,100%{box-shadow:0 0 0 0 rgba(255,179,0,.65)}50%{box-shadow:0 0 0 9px rgba(255,179,0,0)}}
-.bar.m-collapsed{padding:6px 12px;gap:0;margin-bottom:16px}
-.bar.m-collapsed>*:not(.mtoggle){display:none!important}
+.bar.m-fixed.m-collapsed{background:transparent;border:0;backdrop-filter:none;-webkit-backdrop-filter:none;padding:8px 10px;gap:0;pointer-events:none}
+.bar.m-fixed.m-collapsed>*:not(.mtoggle){display:none!important}
+.bar.m-fixed.m-collapsed .mtoggle{pointer-events:auto;width:44px;height:44px;padding:0;margin-left:auto;border-radius:50%;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.55)}
+.bar.m-fixed.m-collapsed .mtoggle .mt-ic,.bar.m-fixed.m-collapsed .mtoggle .mt-tx{display:none}
+.bar.m-fixed.m-collapsed .mtoggle .mt-ch{margin:0;font-size:20px}
 }
 </style>
 <script id="mobile-menu-js">
@@ -905,33 +908,50 @@ const tb=document.getElementById('tagbtn');if(tb)tb.addEventListener('click',()=
 const bar=document.querySelector('.bar'),hd=document.querySelector('header');
 if(!bar)return;
 const mq=window.matchMedia('(max-width:700px)');
+const spacer=document.createElement('div');spacer.style.display='none';bar.parentNode.insertBefore(spacer,bar);
 const btn=document.createElement('button');btn.type='button';btn.className='mtoggle';
-btn.innerHTML='<span class="mt-ic">\u2630</span><span class="mt-tx"></span><span class="mt-ct"></span><span class="mt-ch"></span>';
+btn.innerHTML='<span class="mt-ic">\u2630</span><span class="mt-tx"></span><span class="mt-ch"></span>';
 bar.insertBefore(btn,bar.firstChild);
-const tx=btn.querySelector('.mt-tx'),ct=btn.querySelector('.mt-ct'),ch=btn.querySelector('.mt-ch'),sh=document.getElementById('shown');
-let collapsed=false,lastOpenY=0,pulsed=false;
-function count(){ct.textContent=sh?sh.textContent.trim():''}
+const tx=btn.querySelector('.mt-tx'),ch=btn.querySelector('.mt-ch');
+let collapsed=false,fixed=false,lastY=0,pulsed=false;
 function set(c){
- collapsed=c;bar.classList.toggle('m-collapsed',c);btn.setAttribute('aria-expanded',String(!c));
- tx.textContent=c?'Menu: search & filters':'Hide menu';
- ch.textContent=c?'\u25BE':'\u25B4';count();
+ collapsed=c;bar.classList.toggle('m-collapsed',c);
+ btn.setAttribute('aria-expanded',String(!c));btn.setAttribute('aria-label',c?'Open menu':'Hide menu');
+ tx.textContent='Hide menu';ch.textContent=c?'\u25BE':'\u25B4';
  if(c&&!pulsed){pulsed=true;btn.classList.add('pulse')}
 }
+function detach(){
+ if(fixed)return;
+ const mb=parseFloat(getComputedStyle(bar).marginBottom)||0;
+ spacer.style.height=(bar.offsetHeight+mb)+'px';spacer.style.display='block';
+ bar.classList.add('m-fixed');fixed=true;
+}
+function attach(){
+ if(!fixed)return;
+ bar.classList.remove('m-fixed','m-collapsed');spacer.style.display='none';fixed=false;collapsed=false;
+}
 set(false);
-btn.addEventListener('click',()=>{set(!collapsed);lastOpenY=window.scrollY});
-bar.addEventListener('pointerdown',()=>{lastOpenY=window.scrollY});
+btn.addEventListener('click',()=>{set(!collapsed);lastY=window.scrollY});
+bar.addEventListener('pointerdown',()=>{lastY=window.scrollY});
 bar.addEventListener('click',e=>{
  const b=e.target.closest('.jump button');
- if(b&&mq.matches&&!/all$/i.test(b.textContent.trim()))setTimeout(()=>set(true),80);
+ if(b&&mq.matches&&fixed&&!/all$/i.test(b.textContent.trim()))setTimeout(()=>set(true),80);
 });
 window.addEventListener('scroll',()=>{
  if(!mq.matches)return;
- const y=window.scrollY,top=(hd?hd.offsetHeight:300)+40;
- if(y>top)bar.classList.add('m-armed');
- if(!collapsed&&y>top&&y>lastOpenY+140)set(true);
+ const y=window.scrollY;
+ const top=hd?hd.getBoundingClientRect().bottom+y:200;
+ if(!fixed){
+  if(y>top+20){detach();set(true);lastY=y}
+  return;
+ }
+ if(y<top-40){attach();return}
+ if(!collapsed){
+  if(y<lastY)lastY=y;
+  if(y>lastY+80)set(true);
+ }
 },{passive:true});
-if(sh)new MutationObserver(count).observe(sh,{childList:true,characterData:true,subtree:true});
-mq.addEventListener('change',()=>{if(!mq.matches)set(false)});
+mq.addEventListener('change',()=>{if(!mq.matches){attach();set(false)}});
 })();
 </script>
 </body></html>
