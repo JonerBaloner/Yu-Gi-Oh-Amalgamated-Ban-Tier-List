@@ -886,4 +886,52 @@ const tb=document.getElementById('tagbtn');if(tb)tb.addEventListener('click',()=
 })();
 </script>
 <style id="stunrename">.cat{white-space:nowrap}.lt .cat{min-width:96px}</style>
+<style id="mobile-menu">
+.mtoggle{display:none}
+@media(max-width:700px){
+.bar.m-armed .mtoggle{display:flex}
+.mtoggle{align-items:center;gap:10px;width:100%;box-sizing:border-box;background:#1c2230;color:#fff;border:1.5px solid #ffb300;border-radius:10px;padding:10px 12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;text-align:left}
+.mtoggle .mt-ic{font-size:17px;color:#ffb300;line-height:1}
+.mtoggle .mt-ct{margin-left:auto;color:var(--mut);font-weight:500;font-size:12px;white-space:nowrap}
+.mtoggle .mt-ch{font-size:16px;color:#ffb300;line-height:1}
+.mtoggle.pulse{animation:mtp 1.2s ease-in-out 3}
+@keyframes mtp{0%,100%{box-shadow:0 0 0 0 rgba(255,179,0,.65)}50%{box-shadow:0 0 0 9px rgba(255,179,0,0)}}
+.bar.m-collapsed{padding:6px 12px;gap:0;margin-bottom:16px}
+.bar.m-collapsed>*:not(.mtoggle){display:none!important}
+}
+</style>
+<script id="mobile-menu-js">
+(function(){
+const bar=document.querySelector('.bar'),hd=document.querySelector('header');
+if(!bar)return;
+const mq=window.matchMedia('(max-width:700px)');
+const btn=document.createElement('button');btn.type='button';btn.className='mtoggle';
+btn.innerHTML='<span class="mt-ic">\u2630</span><span class="mt-tx"></span><span class="mt-ct"></span><span class="mt-ch"></span>';
+bar.insertBefore(btn,bar.firstChild);
+const tx=btn.querySelector('.mt-tx'),ct=btn.querySelector('.mt-ct'),ch=btn.querySelector('.mt-ch'),sh=document.getElementById('shown');
+let collapsed=false,lastOpenY=0,pulsed=false;
+function count(){ct.textContent=sh?sh.textContent.trim():''}
+function set(c){
+ collapsed=c;bar.classList.toggle('m-collapsed',c);btn.setAttribute('aria-expanded',String(!c));
+ tx.textContent=c?'Menu: search & filters':'Hide menu';
+ ch.textContent=c?'\u25BE':'\u25B4';count();
+ if(c&&!pulsed){pulsed=true;btn.classList.add('pulse')}
+}
+set(false);
+btn.addEventListener('click',()=>{set(!collapsed);lastOpenY=window.scrollY});
+bar.addEventListener('pointerdown',()=>{lastOpenY=window.scrollY});
+bar.addEventListener('click',e=>{
+ const b=e.target.closest('.jump button');
+ if(b&&mq.matches&&!/all$/i.test(b.textContent.trim()))setTimeout(()=>set(true),80);
+});
+window.addEventListener('scroll',()=>{
+ if(!mq.matches)return;
+ const y=window.scrollY,top=(hd?hd.offsetHeight:300)+40;
+ if(y>top)bar.classList.add('m-armed');
+ if(!collapsed&&y>top&&y>lastOpenY+140)set(true);
+},{passive:true});
+if(sh)new MutationObserver(count).observe(sh,{childList:true,characterData:true,subtree:true});
+mq.addEventListener('change',()=>{if(!mq.matches)set(false)});
+})();
+</script>
 </body></html>
